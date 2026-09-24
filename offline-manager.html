@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Data Manager - CUPAD</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .offline-panel {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: var(--bg-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text); }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-success { background: #22c55e; color: white; }
+        
+        .btn:hover { transform: translateY(-2px); }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background: #22c55e; }
+        .status-offline { background: #ef4444; }
+        
+        .queue-item {
+            background: var(--bg-secondary);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .queue-item-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .queue-item-details {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-panel">
+        <h2>
+            <span id="connection-indicator" class="status-indicator"></span>
+            Offline Data Manager
+        </h2>
+        
+        <div class="stats-grid" id="stats-grid">
+            <!-- Stats will be populated by JavaScript -->
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="syncAllData()">
+                <i class="fas fa-sync"></i> Sync All Data
+            </button>
+            <button class="btn btn-success" onclick="refreshAllData()">
+                <i class="fas fa-download"></i> Refresh from Server
+            </button>
+            <button class="btn btn-secondary" onclick="exportAllData()">
+                <i class="fas fa-file-export"></i> Export Data
+            </button>
+            <button class="btn btn-danger" onclick="clearAllOfflineData()">
+                <i class="fas fa-trash"></i> Clear All Data
+            </button>
+        </div>
+        
+        <h3>Pending Sync Queue</h3>
+        <div id="sync-queue">
+            <!-- Queue items will be populated by JavaScript -->
+        </div>
+        
+        <h3>Storage Details</h3>
+        <div id="storage-details">
+            <!-- Storage details will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <script src="js/indexeddb-manager.js"></script>
+    <script src="js/offline-manager.js"></script>
+    <script src="js/data-initializer.js"></script>
+    
+    <script>
+        // Update connection status
+        function updateConnectionStatus() {
+            const indicator = document.getElementById('connection-indicator');
+            if (navigator.onLine) {
+                indicator.className = 'status-indicator status-online';
+            } else {
+                indicator.className = 'status-indicator status-offline';
+            }
+        }
+
+        // Load and display statistics
+        async function loadStats() {
+            try {
+                const stats = await window.cupadDB.getStorageStats();
+                const statsGrid = document.getElementById('stats-grid');
+                
+                statsGrid.innerHTML = '';
+                
+                for (const [store, data] of Object.entries(stats)) {
+                    const statCard = document.createElement('div');
+                    statCard.className = 'stat-card';
+                    statCard.innerHTML = `
+                        <div class="stat-number">${data.count}</div>
+                        <div class="stat-label">${store.toUpperCase()}</div>
+                        ${data.unsynced > 0 ? `<div style="color: #f97316; font-size: 10px;">${data.unsynced} unsynced</div>` : ''}
+                    `;
+                    statsGrid.appendChild(statCard);
+                }
+                
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load and display sync queue
+        async function loadSyncQueue() {
+            try {
+                const queue = await window.cupadDB.getSyncQueue();
+                const queueContainer = document.getElementById('sync-queue');
+                
+                if (queue.length === 0) {
+                    queueContainer.innerHTML = '<p>No pending items</p>';
+                    return;
+                }
+                
+                queueContainer.innerHTML = '';
+                
+                queue.forEach(item => {
+                    const queueItem = document.createElement('div');
+                    queueItem.className = 'queue-item';
+                    queueItem.innerHTML = `
+                        <div class="queue-item-header">
+                            ${item.operation.toUpperCase()} - ${item.storeName}
+                        </div>
+                        <div class="queue-item-details">
+                            Created: ${new Date(item.timestamp).toLocaleString()}
+                            ${item.retries ? `| Retries: ${item.retries}` : ''}
+                        </div>
+                    `;
+                    queueContainer.appendChild(queueItem);
+                });
+                
+            } catch (error) {
+                console.error('Error loading sync queue:', error);
+            }
+        }
+
+        // Action functions
+        async function syncAllData() {
+            if (!navigator.onLine) {
+                alert('No internet connection');
+                return;
+            }
+            
+            try {
+                const results = await window.cupadDB.syncWithServer();
+                alert(`Synced: ${results.synced}, Failed: ${results.failed}`);
+                loadStats();
+                loadSyncQueue();
+            } catch (error) {
+                alert('Sync failed: ' + error.message);
+            }
+        }
+
+        async function refreshAllData() {
+            if (!navigator.onLine) {
+                alert('No internet connection');
+                return;
+            }
+            
+            try {
+                await window.dataInitializer.initializeData();
+                alert('Data refreshed from server');
+                loadStats();
+            } catch (error) {
+                alert('Refresh failed: ' + error.message);
+            }
+        }
+
+        async function exportAllData() {
+            const stores = ['clients', 'disbursements', 'savings', 'collections', 'payments'];
+            
+            for (const store of stores) {
+                await window.dataInitializer.exportData(store);
+            }
+            
+            alert('Data export started');
+        }
+
+        async function clearAllOfflineData() {
+            await window.dataInitializer.clearAllData();
+            loadStats();
+            loadSyncQueue();
+        }
+
+        // Initialize page
+        window.addEventListener('load', () => {
+            updateConnectionStatus();
+            loadStats();
+            loadSyncQueue();
+            
+            // Update every 30 seconds
+            setInterval(() => {
+                updateConnectionStatus();
+                loadStats();
+                loadSyncQueue();
+            }, 30000);
+        });
+
+        // Listen for online/offline events
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+    </script>
+</body>
+</html>

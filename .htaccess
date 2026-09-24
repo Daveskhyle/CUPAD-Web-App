@@ -1,0 +1,26 @@
+RewriteEngine On
+
+# Don't apply clean URL rules to cron folder
+RewriteRule ^cron/ - [L]
+
+# Force HTTPS (disabled for local development)
+# RewriteCond %{HTTPS} off
+# RewriteCond %{HTTP:X-Forwarded-Proto} !https
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# Don't redirect POST requests to avoid losing form data
+RewriteCond %{REQUEST_METHOD} !POST
+# Redirect .php URLs to clean URLs (only for GET requests)
+RewriteCond %{THE_REQUEST} \s/+([^.\s?]*)\.php(\?[^\s]*)? [NC]
+RewriteRule ^ /%1%2 [R=301,L]
+
+# Remove .php extension from URLs
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+Options -Indexes
+
+<Files "users.json">
+    Require all denied
+</Files>
