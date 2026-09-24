@@ -1,0 +1,36 @@
+<!-- Add this to your dashboard/pages -->
+<script src="js/offline-queue.js"></script>
+
+<!-- Offline Status Indicator -->
+<div id="offline-status" style="position:fixed;top:10px;right:10px;padding:8px 16px;border-radius:20px;font-size:14px;z-index:9999;display:none;">
+    <span id="offline-queue-status"></span>
+    <button onclick="manualSync()" style="margin-left:10px;padding:4px 12px;border-radius:4px;border:none;background:#4CAF50;color:white;cursor:pointer;">
+        Sync Now
+    </button>
+</div>
+
+<style>
+#offline-status {
+    background: #ff9800;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+</style>
+
+<script>
+// Show/hide offline indicator
+function updateOnlineStatus() {
+    const status = document.getElementById('offline-status');
+    if (!navigator.onLine) {
+        status.style.display = 'block';
+        status.style.background = '#f44336';
+        status.querySelector('span').textContent = '📵 Offline';
+    } else {
+        showQueueStatus();
+    }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+window.addEventListener('load', updateOnlineStatus);
+</script>

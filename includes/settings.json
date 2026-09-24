@@ -1,0 +1,17 @@
+{
+    "client_registration_fee": 1000,
+    "disbursement_settings": {
+        "min_disbursement": 20000,
+        "max_disbursement": 250000,
+        "num_installments": 23,
+        "min_days_after_registration": 0,
+        "max_first_loan_amount": 250000,
+        "max_increment_amount": 20000,
+        "min_waiting_days_full_term": 23,
+        "min_waiting_days_early_payoff": 18,
+        "savings_requirement_percentage": 0.3,
+        "interest_rate": 0.15
+    },
+    "disbursement_date_readonly": true,
+    "show_remaining_balance": false
+}
