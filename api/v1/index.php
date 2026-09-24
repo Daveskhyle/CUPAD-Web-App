@@ -25,6 +25,7 @@ if($method==='GET' && preg_match('#^uploads/profile/([A-Za-z0-9._-]+)$#',$route,
 
 /* Mobile endpoints are loaded first so they can handle their routes and share the same JWT/scope helpers. */
 require_once __DIR__ . '/mobile-writes.php';
+require_once __DIR__ . '/combined.php';
 
 if($method==='GET' && $route==='health'){
     try { db()->query('SELECT 1'); respond(['success'=>true,'service'=>'CUPAD API','version'=>'1.2.0','database'=>'ok']); }
